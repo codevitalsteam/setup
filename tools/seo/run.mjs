@@ -28,6 +28,7 @@ if (!host) {
 
 const LH_DIR = path.resolve("artifacts/lighthouse");
 
+// SEO Audit should have it's own routes
 const ROUTES = (
   process.env.LH_ROUTES ? process.env.LH_ROUTES.split(",") : defaultRoutes
 )

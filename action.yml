@@ -1,0 +1,23 @@
+name: CodeVitals Post Deploy Audit
+description: Run CodeVitals post-deploy audits
+
+inputs:
+  host:
+    description: Base URL to test (e.g. https://www.example.com)
+    required: true
+  routes:
+    description: Comma-separated routes (e.g. /,/p/foo)
+    required: false
+    default: "/"
+  user-agent:
+    description: User agent for requests
+    required: false
+    default: "CodeVitalsBot/1.0"
+  presets:
+    description: Comma-separated presets (e.g. mobile,desktop)
+    required: false
+    default: "mobile,desktop"
+
+runs:
+  using: "node22"
+  main: "index.js"
