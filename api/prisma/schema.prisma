@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id           String   @id
+  name         String?
+  apiTokenHash String
+  createdAt    DateTime @default(now())
+
+  webhooks Webhook[]
+  runs     Run[]
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  projectId String
+  url       String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model Run {
+  id         String   @id @default(cuid())
+  projectId  String
+  createdAt  DateTime @default(now())
+
+  provider   String?
+  repo       String?
+  ref        String?
+  sha        String?
+  workflow   String?
+  runId      String?
+  runAttempt Int?
+  prNumber   Int?
+
+  configJson Json?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  audits   Audit[]
+
+  @@index([projectId, createdAt])
+  @@index([projectId, ref])
+  @@index([projectId, sha])
+}
+
+model Audit {
+  id            String   @id @default(cuid())
+  runId         String
+  projectId     String
+  createdAt     DateTime @default(now())
+
+  route         String
+  url           String
+
+  seo           Float
+  performance   Float
+  accessibility Float
+  bestPractices Float
+
+  fcpMs         Int?
+  lcpMs         Int?
+  cls           Float?
+
+  auditsJson     Json?
+
+  run Run @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, route, createdAt])
+  @@index([runId])
+}

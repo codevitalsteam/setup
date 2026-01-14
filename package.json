@@ -1,0 +1,20 @@
+{
+  "name": "site-performance",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm --prefix api run dev\" \"npm --prefix web run dev\"",
+    "build": "npm --prefix web run build",
+    "start": "npm --prefix api run start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "lighthouse": "^12.8.2",
+    "serve": "^14.2.5"
+  },
+  "type": "module",
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "dotenv": "^17.2.3",
+    "undici": "^7.18.2"
+  }
+}
