@@ -20,4 +20,4 @@ inputs:
 
 runs:
   using: "node22"
-  main: "index.js"
+  main: "dist/index.js"
