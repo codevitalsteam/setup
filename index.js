@@ -26,8 +26,7 @@ function run(tool) {
     });
 }
 
-const host = process.env.HOST;
-if (!host) {
+if (!HOST) {
   console.error("Missing env HOST (e.g. https://www.example.com:443)");
   process.exit(1);
 }
