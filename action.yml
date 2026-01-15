@@ -19,5 +19,24 @@ inputs:
     default: "mobile,desktop"
 
 runs:
-  using: "node24"
-  main: "index.js"
+  using: "composite"
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci
+
+    - name: Run CodeVitals
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        HOST: ${{ inputs.host }}
+        LH_ROUTES: ${{ inputs.routes }}
+        USER_AGENT: ${{ inputs.user_agent }}
+        PRESETS: ${{ inputs.presets }}
+      run: node index.js
