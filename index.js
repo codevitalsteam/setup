@@ -26,11 +26,11 @@ function run(tool) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-// 1) SEO Audit
-run("tools/seo/run.mjs");
-
-// 2) Lighthouse
+// 1) Lighthouse
 run("tools/lighthouse/run.mjs");
+
+// 2) SEO Audit
+run("tools/seo/run.mjs");
 
 // 3) Screaming Frog (optional)
 // run("tools/screamingfrog/run.mjs");
