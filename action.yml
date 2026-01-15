@@ -9,7 +9,7 @@ inputs:
     description: Comma-separated routes (e.g. /,/p/foo)
     required: false
     default: "/"
-  user-agent:
+  user_agent:
     description: User agent for requests
     required: false
     default: "CodeVitalsBot/1.0"

@@ -1,6 +1,11 @@
 import { spawnSync } from "node:child_process";
 import process from "node:process";
 
+console.log("GITHUB_ACTION:", process.env.GITHUB_ACTION);
+console.log("INPUT_HOST:", process.env.INPUT_HOST);
+console.log("INPUT_* keys:", Object.keys(process.env).filter(k => k.startsWith("INPUT_")));
+
+
 // GitHub Actions passes inputs as env vars named INPUT_<NAME_IN_ACTION_YML>, uppercased and _ for dashes.
 const HOST = process.env.INPUT_HOST;
 const LH_ROUTES = process.env.INPUT_ROUTES;
