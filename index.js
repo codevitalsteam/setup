@@ -5,6 +5,7 @@ const HOST = process.env.HOST;
 const LH_ROUTES = process.env.LH_ROUTES || "/";
 const USER_AGENT = process.env.USER_AGENT || "CodeVitalsBot/1.0";
 const PRESETS = process.env.PRESETS || "mobile,desktop";
+const SITEMAP = process.env.SITEMAP || "sitemap.xml";
 
 if (!HOST) {
   console.error("Missing env HOST (e.g. https://www.example.com)");
@@ -20,6 +21,7 @@ function run(tool) {
       LH_ROUTES,
       USER_AGENT,
       PRESETS,
+      SITEMAP,
     },
   });
 

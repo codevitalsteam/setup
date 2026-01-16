@@ -1,32 +1,124 @@
 import "dotenv/config";
-import fs from "node:fs";
-import path from "node:path";
-import { request } from "undici";
 
-import { seoConfig } from "./config.mjs";
-import { defaultRoutes } from "./routes.mjs";
-import { runSeoAudits } from "./scripts/seoAudit.js";
-import { saveSeoResults } from "./scripts/saveSeoOutput.js";
+import { seoConfig } from "./configs/config.mjs";
+import { defaultRoutes } from "./configs/routes.mjs";
+import { saveSeoResults } from "./helpers/seoArtifactsHelper.js";
+import { fetchHtml, sleep } from "./helpers/seoHelpers.js";
+import { 
+  getLcpImageUrlFromLhr
+} from "./helpers/seoLighthouseHelpers.js";
+import {
+  auditTitle,
+  auditMetaDescription,
+  auditCanonical,
+  auditHreflang,
+  auditOpenGraph,
+  auditViewport,
+  auditLcpPreload,
+  auditFavicon,
+  auditH1,
+  auditH2,
+  auditImageDimensions,
+  auditImageAltText,
+  auditPdpFetchPriority,
+  auditDescriptiveLinkText,
+  auditInContentLinksNo404,
+  auditHttpToHttpsRedirect,
+  auditNonWwwToWwwRedirect,
+  auditParentProductNoNoindex,
+  auditVariantHasNoindex,
+  auditRobotsTxtLowerEnvDisallowAll,
+  auditSitemapIndexAndUrlStatuses,
+  auditLazyLoadBelowFold
+} from "./helpers/seoAuditHelpers.js";
+import { parseHtml, tryParseUrl } from "./helpers/seoHelpers.js";
 
-export const fetchHtml = async (url) => {
-  console.log(`Fetching HTML for SEO audits from ${url}... with user-agent: ${process.env.USER_AGENT || "CodeVitalsBot/1.0"}`);
-  const res = await request(url, {
-    method: "GET",
-    headers: { "user-agent": process.env.USER_AGENT || "CodeVitalsBot/1.0" },
-  });
-  const html = await res.body.text();
-  return { status: res.statusCode, headers: res.headers, html };
+const host = process.env.HOST || "http://localhost:3000"; 
+
+export const runSeoAudits = async ({
+  url,
+  html,
+  route,
+  config = {},
+  pageType = "",
+  isVariant = false,
+  isProduction = true,
+  sitemapFilename = null,
+} = {}) => {
+  const findings = [];
+  const $ = parseHtml(html);
+
+  // HEAD (HTML)
+  auditTitle($, findings, config);
+  auditMetaDescription($, findings, config);
+  auditCanonical($, findings, { pageUrl: url }, config);
+  auditHreflang($, findings, { pageUrl: url, expectLocalized: config?.hreflang?.expectLocalized ?? false }, config);
+  auditOpenGraph($, findings, { pageUrl: url });
+  auditViewport($, findings);
+
+  // LCP preload (needs Lighthouse)
+  const lcpImg = getLcpImageUrlFromLhr(route);
+  auditLcpPreload($, findings, { pageUrl: url, lcpImageUrl: lcpImg }, config);
+
+  // Favicon (network)
+  await auditFavicon($, findings, { pageUrl: url });
+
+  // BODY (HTML)
+  auditH1($, findings, config);
+  auditH2($, findings, config);
+  auditImageDimensions($, findings);
+  auditImageAltText($, findings, config);
+  // Requires Lighthouse to identify images below the fold
+  auditLazyLoadBelowFold($, findings, route, config);
+  auditPdpFetchPriority($, findings, { pageType }, config);
+  auditDescriptiveLinkText($, findings, config);
+
+  // In-content 404 sampling (network)
+  await auditInContentLinksNo404($, findings, { pageUrl: url, sampleLimit: config?.links?.inContentSampleLimit ?? 25 }, config);
+
+  // Redirect checks (network)
+  await auditHttpToHttpsRedirect(findings, { url }, config);
+  await auditNonWwwToWwwRedirect(findings, { url }, config);
+
+  // Robots meta
+  auditParentProductNoNoindex($, findings, config);
+  auditVariantHasNoindex($, findings, { isVariant }, config);
+
+  // robots.txt + sitemaps (network)
+  const baseUrl = (() => {
+    const u = tryParseUrl(url);
+    return u ? `${u.protocol}//${u.host}` : null;
+  })();
+
+  if (baseUrl) {
+    await auditRobotsTxtLowerEnvDisallowAll(findings, { baseUrl, isProduction }, config);
+    await auditSitemapIndexAndUrlStatuses(findings, { baseUrl, sitemapFilename, samplePerSitemap: config?.sitemaps?.samplePerSitemap ?? 50 }, config);
+  }
+
+  return {
+    url,
+    pageType,
+    isVariant,
+    summary: summarizeFindings(findings),
+    findings,
+  };
 };
 
-export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+export const summarizeFindings = (findings) => {
+  const bySeverity = { error: 0, warn: 0, info: 0 };
+  let failed = 0;
 
-const host = process.env.HOST;
-if (!host) {
-  console.error("Missing env HOST (e.g. https://www.example.com:443)");
-  process.exit(1);
-}
+  for (const f of findings) {
+    bySeverity[f.severity] = (bySeverity[f.severity] ?? 0) + 1;
+    if (!f.pass && (f.severity === "error" || f.severity === "warn")) failed += 1;
+  }
 
-const LH_DIR = path.resolve("artifacts/lighthouse");
+  return {
+    total: findings.length,
+    failed,
+    counts: bySeverity,
+  };
+};
 
 // SEO Audit should have it's own routes
 const ROUTES = (
@@ -39,17 +131,6 @@ const delayMs = Number(process.env.CRAWL_DELAY_MS ?? "0");
 
 for (const route of ROUTES) {
   const url = `${host}${route.startsWith("/") ? route : `/${route}`}`;
-  const slugBase =
-    route === "/" ? "home" : route.replaceAll("/", "_").replace(/^_+/, "");
-  const lhPath = path.join(LH_DIR, `${slugBase}-desktop.json`);
-
-  if (!fs.existsSync(lhPath)) {
-    console.warn(`⚠️ Missing lighthouse file: ${lhPath} (skipping ${route})`);
-    continue;
-  }
-
-  const lighthouseJson = JSON.parse(fs.readFileSync(lhPath, "utf8"));
-  const lhr = lighthouseJson.lhr ?? lighthouseJson;
 
   console.log(`\nFetching HTML for SEO audits from ${url}...`);
   const { status, headers, html } = await fetchHtml(url);
@@ -58,11 +139,12 @@ for (const route of ROUTES) {
   const result = await runSeoAudits({
     url,
     html,
-    lighthouseLhr: lhr,
+    route,
     config: seoConfig,
     // pageType: "PDP",
     // isVariant: false,
     isProduction: process.env.ENVIRONMENT === "prod",
+    sitemapFilename: process.env.SITEMAP,
   });
 
   saveSeoResults({

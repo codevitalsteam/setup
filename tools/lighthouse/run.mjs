@@ -1,16 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { thresholds } from "./config.mjs";
-import { defaultRoutes } from "./routes.mjs";
-import { scoreTo100, failIfBelow, failIfAbove, auditNumericValue, auditDisplayValue } from "./scripts/lighthouse.js";
+import { config } from "./configs/config.mjs";
+import { defaultRoutes } from "./configs/routes.mjs";
+import { scoreTo100, failIfBelow, failIfAbove, auditNumericValue, auditDisplayValue } from "./helpers/lighthouseHelpers.js";
 import { startSpinner } from "../utils/spinner.mjs";
 import { runAsyncCommand } from "../utils/runAsyncCommand.mjs";
 
 //const WEB_DIR = path.resolve("web");
 //const DIST_DIR = path.resolve("web/dist");
-const PRESETS = ["mobile", "desktop"];
-const ROUTES = (
+const presets = config.devices;
+const thresholds = config.thresholds;
+const routes = (
   process.env.LH_ROUTES ? process.env.LH_ROUTES.split(",") : defaultRoutes
 )
   .map((s) => s.trim())
@@ -37,13 +38,13 @@ if (server) {
 await new Promise((r) => setTimeout(r, 1200));
 
 const failures = [];
-for (const route of ROUTES) {
+for (const route of routes) {
   const url = `${process.env.HOST}${
     route.startsWith("/") ? route : `/${route}`
   }`;
   const slugBase = route === "/" ? "home" : route.replaceAll("/", "_").replace(/^_+/, "");
 
-    for (const preset of PRESETS) {
+    for (const preset of presets) {
         const slug = `${slugBase}-${preset}`;
         const jsonPath = path.join(OUT_DIR, `${slug}.json`);
 

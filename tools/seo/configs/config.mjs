@@ -17,7 +17,7 @@ export const seoConfig = {
   },
 
   hreflang: {
-    expectLocalized: false,
+    expectLocalized: true,
     requireXDefault: true,
   },
 
