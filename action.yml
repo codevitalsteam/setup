@@ -17,6 +17,13 @@ inputs:
     description: Comma-separated presets (e.g. mobile,desktop)
     required: false
     default: "mobile,desktop"
+  config_path:
+    required: false
+    description: Path to consumer config.js (e.g. .codevitals/config.js)
+
+  routes_path:
+    required: false
+    description: Path to consumer routes.js (e.g. .codevitals/routes.js)
 
 runs:
   using: "composite"
@@ -39,4 +46,6 @@ runs:
         LH_ROUTES: ${{ inputs.routes }}
         USER_AGENT: ${{ inputs.user_agent }}
         PRESETS: ${{ inputs.presets }}
+        CONFIG_PATH: ${{ inputs.config_path }}
+        ROUTES_PATH: ${{ inputs.routes_path }}
       run: node index.js
