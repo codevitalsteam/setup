@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 import process from "node:process";
 
 const HOST = process.env.HOST;
@@ -7,10 +9,41 @@ const USER_AGENT = process.env.USER_AGENT || "CodeVitalsBot/1.0";
 const PRESETS = process.env.PRESETS || "mobile,desktop";
 const SITEMAP = process.env.SITEMAP || "sitemap.xml";
 
+// New: consumer-provided file paths (relative to the consumer repo root)
+const CONFIG_PATH =
+  process.env.CONFIG_PATH || process.env.CONFIG_PATH || "";
+const ROUTES_PATH =
+  process.env.ROUTES_PATH || process.env.ROUTES_PATH || "";
+
 if (!HOST) {
   console.error("Missing env HOST (e.g. https://www.example.com)");
   process.exit(1);
 }
+
+const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
+const OVERRIDES_DIR = path.resolve(WORKSPACE, ".codevitals-overrides");
+
+function copyFromConsumer(label, relOrAbsPath) {
+  if (!relOrAbsPath) return "";
+
+  const src = path.isAbsolute(relOrAbsPath)
+    ? relOrAbsPath
+    : path.resolve(WORKSPACE, relOrAbsPath);
+
+  if (!fs.existsSync(src)) {
+    console.error(`${label} not found: ${src}`);
+    process.exit(1);
+  }
+
+  fs.mkdirSync(OVERRIDES_DIR, { recursive: true });
+  const dest = path.join(OVERRIDES_DIR, path.basename(src));
+  fs.copyFileSync(src, dest);
+
+  return dest;
+}
+
+const OVERRIDE_CONFIG_FILE = copyFromConsumer("Consumer config", CONFIG_PATH);
+const OVERRIDE_ROUTES_FILE = copyFromConsumer("Consumer routes", ROUTES_PATH);
 
 function run(tool) {
   const result = spawnSync("node", [tool], {
@@ -22,6 +55,10 @@ function run(tool) {
       USER_AGENT,
       PRESETS,
       SITEMAP,
+
+      // New: forward override file paths to sub-tools
+      CONFIG_FILE: OVERRIDE_CONFIG_FILE,
+      ROUTES_FILE: OVERRIDE_ROUTES_FILE,
     },
   });
 

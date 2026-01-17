@@ -1,18 +1,21 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { config } from "./configs/config.mjs";
-import { defaultRoutes } from "./configs/routes.mjs";
+import { config } from "../configs/config.mjs";
+import { routes } from "../configs/routes.mjs";
 import { scoreTo100, failIfBelow, failIfAbove, auditNumericValue, auditDisplayValue } from "./helpers/lighthouseHelpers.js";
 import { startSpinner } from "../utils/spinner.mjs";
 import { runAsyncCommand } from "../utils/runAsyncCommand.mjs";
 
-//const WEB_DIR = path.resolve("web");
-//const DIST_DIR = path.resolve("web/dist");
-const presets = config.devices;
-const thresholds = config.thresholds;
-const routes = (
-  process.env.LH_ROUTES ? process.env.LH_ROUTES.split(",") : defaultRoutes
+// Perform Lighthouse audits
+console.log("🚦 Starting Lighthouse audits...");
+console.log(`Using config: ${JSON.stringify(config.lighthouse)}`);
+console.log(`Using routes: ${JSON.stringify(routes.lighthouse)}`);
+
+const presets = config.lighthouse.devices;
+const thresholds = config.lighthouse.thresholds;
+const lighthouseRoutes = (
+  process.env.LH_ROUTES ? process.env.LH_ROUTES.split(",") : routes.lighthouse
 )
   .map((s) => s.trim())
   .filter(Boolean);
@@ -38,7 +41,7 @@ if (server) {
 await new Promise((r) => setTimeout(r, 1200));
 
 const failures = [];
-for (const route of routes) {
+for (const route of lighthouseRoutes) {
   const url = `${process.env.HOST}${
     route.startsWith("/") ? route : `/${route}`
   }`;

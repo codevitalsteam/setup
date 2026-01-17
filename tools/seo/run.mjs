@@ -1,7 +1,7 @@
 import "dotenv/config";
 
-import { seoConfig } from "./configs/config.mjs";
-import { defaultRoutes } from "./configs/routes.mjs";
+import { config } from "../configs/config.mjs";
+import { routes } from "../configs/routes.mjs";
 import { saveSeoResults } from "./helpers/seoArtifactsHelper.js";
 import { fetchHtml, sleep } from "./helpers/seoHelpers.js";
 import { 
@@ -120,9 +120,14 @@ export const summarizeFindings = (findings) => {
   };
 };
 
+// Perform SEO audits
+console.log("🚦 Starting SEO audits...");
+console.log(`Using config: ${JSON.stringify(config.seoAudit)}`);
+console.log(`Using routes: ${JSON.stringify(routes.seoAudit)}`);
+
 // SEO Audit should have it's own routes
 const ROUTES = (
-  process.env.LH_ROUTES ? process.env.LH_ROUTES.split(",") : defaultRoutes
+  process.env.LH_ROUTES ? process.env.LH_ROUTES.split(",") : routes.seoAudit
 )
   .map((s) => s.trim())
   .filter(Boolean);
@@ -140,7 +145,7 @@ for (const route of ROUTES) {
     url,
     html,
     route,
-    config: seoConfig,
+    config: config.seoAudit,
     // pageType: "PDP",
     // isVariant: false,
     isProduction: process.env.ENVIRONMENT === "prod",
