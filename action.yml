@@ -17,14 +17,13 @@ inputs:
     description: User agent for requests
     required: false
     default: "CodeVitalsBot/1.0"
-  presets:
-    description: Comma-separated presets (e.g. mobile,desktop)
+  devices:
+    description: Optional comma-separated devices (e.g. mobile,desktop). This overrides the devices in config.js
     required: false
     default: "mobile,desktop"
   config_path:
     required: false
     description: Path to consumer config.js (e.g. .codevitals/config.js)
-
   routes_path:
     required: false
     description: Path to consumer routes.js (e.g. .codevitals/routes.js)
@@ -50,7 +49,7 @@ runs:
         LH_ROUTES: ${{ inputs.lh_routes }}
         SEO_ROUTES: ${{ inputs.seo_routes }}
         USER_AGENT: ${{ inputs.user_agent }}
-        PRESETS: ${{ inputs.presets }}
+        DEVICES: ${{ inputs.devices }}
         CONFIG_PATH: ${{ inputs.config_path }}
         ROUTES_PATH: ${{ inputs.routes_path }}
       run: node index.js

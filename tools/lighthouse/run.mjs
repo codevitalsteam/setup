@@ -19,7 +19,7 @@ console.log("🚦 Starting Lighthouse audits...");
 console.log(`Using config: ${JSON.stringify(config.lighthouse)}`);
 console.log(`Using routes: ${JSON.stringify(routes)}`);
 
-const presets = config.lighthouse.devices;
+const presets = process.env.DEVICES ? process.env.DEVICES.split(",") : config.lighthouse.devices;
 const thresholds = config.lighthouse.thresholds;
 
 const OUT_DIR = path.resolve("artifacts/lighthouse");
