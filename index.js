@@ -1,37 +1,73 @@
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 import process from "node:process";
 
-// GitHub Actions passes inputs as env vars named INPUT_<NAME_IN_ACTION_YML>, uppercased and _ for dashes.
-const HOST = process.env.INPUT_HOST;
-const LH_ROUTES = process.env.INPUT_ROUTES;
-const USER_AGENT = process.env.INPUT_USER_AGENT;
-const PRESETS = process.env.INPUT_PRESETS;
+const HOST = process.env.HOST;
+const LH_ROUTES = process.env.LH_ROUTES;
+const SEO_ROUTES = process.env.SEO_ROUTES;
+const USER_AGENT = process.env.USER_AGENT || "CodeVitalsBot/1.0";
+const PRESETS = process.env.PRESETS || "mobile,desktop";
+const SITEMAP = process.env.SITEMAP || "sitemap.xml";
 
-function run(tool) {
-  spawnSync("node", [tool],
-    { 
-      stdio: "inherit", 
-      env: {
-        ...process.env,
-        HOST,
-        LH_ROUTES,
-        USER_AGENT,
-        PRESETS,
-      },
-    });
-}
+// New: consumer-provided file paths (relative to the consumer repo root)
+const CONFIG_PATH = process.env.CONFIG_PATH || "configs/config.js";
+const ROUTES_PATH = process.env.ROUTES_PATH || "configs/routes.js";
 
-const host = process.env.HOST;
-if (!host) {
-  console.error("Missing env HOST (e.g. https://www.example.com:443)");
+if (!HOST) {
+  console.error("Missing env HOST (e.g. https://www.example.com)");
   process.exit(1);
 }
 
-// 1) SEO Audit
-run("tools/seo/run.mjs");
+const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
+const OVERRIDES_DIR = path.resolve(WORKSPACE, ".codevitals-overrides");
 
-// 2) Lighthouse (your existing runner)
+function copyFromConsumer(label, relOrAbsPath) {
+  if (!relOrAbsPath) return "";
+
+  const src = path.isAbsolute(relOrAbsPath)
+    ? relOrAbsPath
+    : path.resolve(WORKSPACE, relOrAbsPath);
+
+  if (!fs.existsSync(src)) {
+    console.error(`${label} not found: ${src}`);
+    process.exit(1);
+  }
+
+  fs.mkdirSync(OVERRIDES_DIR, { recursive: true });
+  const dest = path.join(OVERRIDES_DIR, path.basename(src));
+  fs.copyFileSync(src, dest);
+
+  return dest;
+}
+
+const OVERRIDE_CONFIG_FILE = copyFromConsumer("Consumer config", CONFIG_PATH);
+const OVERRIDE_ROUTES_FILE = copyFromConsumer("Consumer routes", ROUTES_PATH);
+
+function run(tool) {
+  const result = spawnSync("node", [tool], {
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      HOST,
+      LH_ROUTES,
+      SEO_ROUTES,
+      USER_AGENT,
+      PRESETS,
+      SITEMAP,
+      CONFIG_FILE: OVERRIDE_CONFIG_FILE,
+      ROUTES_FILE: OVERRIDE_ROUTES_FILE,
+    },
+  });
+
+  if (result.status !== 0) process.exit(result.status ?? 1);
+}
+
+// 1) Lighthouse
 run("tools/lighthouse/run.mjs");
 
-// 3) Screaming Frog Crawl
-//run("tools/screamingfrog/run.mjs");
+// 2) SEO Audit
+run("tools/seo/run.mjs");
+
+// 3) Screaming Frog (optional)
+// run("tools/screamingfrog/run.mjs");

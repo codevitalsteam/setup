@@ -140,3 +140,5 @@ vite.config.ts.timestamp-*
 
 # Test Artifacts
 artifacts/*
+.config
+.codevitals-overrides

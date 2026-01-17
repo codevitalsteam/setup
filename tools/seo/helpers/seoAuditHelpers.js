@@ -1,140 +1,15 @@
-import * as cheerio from "cheerio";
-import { request } from "undici";
-
-/** ---------------------------
- * Shared helpers
- * ---------------------------
- */
-
-export const normalizeSpace = (s = "") => String(s).replace(/\s+/g, " ").trim();
-export const safeLower = (s = "") => normalizeSpace(s).toLowerCase();
-
-export const toAbsoluteUrl = (maybeUrl, baseUrl) => {
-  try {
-    return new URL(maybeUrl).toString();
-  } catch {
-    try {
-      return new URL(maybeUrl, baseUrl).toString();
-    } catch {
-      return null;
-    }
-  }
-};
-
-export const tryParseUrl = (u) => {
-  try {
-    return new URL(u);
-  } catch {
-    return null;
-  }
-};
-
-export const makeFinding = ({
-  id,
-  pass,
-  severity = "warn",
-  message,
-  details,
-  group,
-}) => ({
-  id,
-  pass: Boolean(pass),
-  severity, // "error" | "warn" | "info"
-  message,
-  ...(group ? { group } : {}),
-  ...(details ? { details } : {}),
-});
-
-export const pushFinding = (findings, finding) => {
-  findings.push(finding);
-  return findings;
-};
-
-export const parseHtml = (html) => cheerio.load(html ?? "");
-
-/** ---------------------------
- * Network helpers
- * ---------------------------
- */
-
-export const httpRequest = async (
-  url,
-  { method = "GET", headers, timeoutMs = 15000 } = {}
-) => {
-  const res = await request(url, {
-    method,
-    headers: {
-      "user-agent": "seo-audit-bot/1.0",
-      accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      ...(headers || {}),
-    },
-    headersTimeout: timeoutMs,
-    bodyTimeout: timeoutMs,
-    maxRedirections: 0, // manual redirect inspection
-  });
-
-  let bodyText = null;
-  if (method === "GET") {
-    const ctype = String(res.headers["content-type"] || "");
-    if (
-      ctype.includes("text") ||
-      ctype.includes("xml") ||
-      ctype.includes("json") ||
-      ctype.includes("html")
-    ) {
-      bodyText = await res.body.text();
-    } else {
-      await res.body.arrayBuffer();
-    }
-  } else {
-    await res.body.arrayBuffer();
-  }
-
-  return {
-    url,
-    status: res.statusCode,
-    headers: res.headers,
-    bodyText,
-  };
-};
-
-export const headOrGet = async (url, opts = {}) => {
-  const head = await httpRequest(url, { ...opts, method: "HEAD" }).catch(
-    () => null
-  );
-  if (head && head.status && head.status !== 405 && head.status !== 501)
-    return head;
-  return httpRequest(url, { ...opts, method: "GET" });
-};
-
-export const isOkStatus = (status) => status === 200 || status === 304;
-
-/** ---------------------------
- * Lighthouse helpers (best effort)
- * ---------------------------
- */
-
-export const getLcpImageUrlFromLhr = (lhr) => {
-  try {
-    const audit = lhr?.audits?.["largest-contentful-paint-element"];
-    const item = audit?.details?.items?.[0];
-    if (!item) return null;
-
-    if (item.url && typeof item.url === "string") return item.url;
-
-    const snippet = item.node?.snippet || "";
-    const m = snippet.match(/\ssrc\s*=\s*["']([^"']+)["']/i);
-    if (m?.[1]) return m[1];
-
-    const m2 = snippet.match(/\sdata-src\s*=\s*["']([^"']+)["']/i);
-    if (m2?.[1]) return m2[1];
-
-    return null;
-  } catch {
-    return null;
-  }
-};
+import { 
+  normalizeSpace, 
+  safeLower, 
+  toAbsoluteUrl, 
+  tryParseUrl, 
+  makeFinding, 
+  pushFinding, 
+  httpRequest,
+  headOrGet,
+  isOkStatus
+} from "./seoHelpers.js";
+import { lighthouseLhrForRoute } from "./seoLighthouseHelpers.js";
 
 /** ---------------------------
  * HEAD audits
@@ -429,6 +304,8 @@ export const auditOpenGraph = ($, findings, { pageUrl } = {}) => {
     "og:image",
     "og:description",
     "og:type",
+    "og:image:width",
+    "og:image:height",
     "og:site_name",
     "og:locale",
   ];
@@ -440,7 +317,7 @@ export const auditOpenGraph = ($, findings, { pageUrl } = {}) => {
       makeFinding({
         id: `og-${p}`,
         group,
-        severity: "warn",
+        severity: "error",
         pass: Boolean(v),
         message: v ? `${p} present.` : `Missing ${p}.`,
       })
@@ -467,6 +344,7 @@ export const auditOpenGraph = ($, findings, { pageUrl } = {}) => {
     );
   }
 
+  // TO-DO: Report if OG:image is NOT present
   const img = get("og:image");
   if (img) {
     const abs = toAbsoluteUrl(img, pageUrl);
@@ -487,6 +365,7 @@ export const auditOpenGraph = ($, findings, { pageUrl } = {}) => {
     );
   }
 
+  // TO-DO:Report if OG:image:width and height are NOT present
   const w = get("og:image:width");
   const h = get("og:image:height");
   if (w || h) {
@@ -615,6 +494,7 @@ export const auditFavicon = async ($, findings, { pageUrl } = {}) => {
   return findings;
 };
 
+// Report if LCP image is NOT preloadeded
 export const auditLcpPreload = (
   $,
   findings,
@@ -929,76 +809,6 @@ export const auditImageAltText = ($, findings, config = {}) => {
       details: missing.length ? { missing } : undefined,
     })
   );
-
-  return findings;
-};
-
-export const auditLazyLoadBelowFold = (
-  $,
-  findings,
-  { lighthouseLhr } = {},
-  config = {}
-) => {
-  const group = "body";
-  const enabled = config?.lazyLoad?.enabled ?? true;
-  if (!enabled) return findings;
-
-  const offscreen = lighthouseLhr?.audits?.["offscreen-images"];
-  const offscreenItems = offscreen?.details?.items || [];
-  const offenders = offscreenItems.slice(0, 25).map((it) => ({
-    url: it.url || it?.node?.snippet || null,
-    wastedMs: it.wastedMs ?? null,
-    wastedBytes: it.wastedBytes ?? null,
-  }));
-
-  if (offenders.length) {
-    pushFinding(
-      findings,
-      makeFinding({
-        id: "lazyload-offscreen",
-        group,
-        severity: "warn",
-        pass: false,
-        message:
-          "Lighthouse reports offscreen images (consider lazy-loading below-the-fold images).",
-        details: { offenders },
-      })
-    );
-  } else {
-    pushFinding(
-      findings,
-      makeFinding({
-        id: "lazyload-offscreen",
-        group,
-        severity: "info",
-        pass: true,
-        message: "No offscreen images flagged by Lighthouse (or audit unavailable).",
-      })
-    );
-  }
-
-  const firstImg = $("img").first();
-  if (firstImg.length) {
-    const loading = safeLower(firstImg.attr("loading") || "");
-    if (loading === "lazy") {
-      pushFinding(
-        findings,
-        makeFinding({
-          id: "lazyload-first-image",
-          group,
-          severity: "warn",
-          pass: false,
-          message:
-            'First <img> is marked loading="lazy" (may hurt LCP if above the fold).',
-          details: {
-            src: normalizeSpace(
-              firstImg.attr("src") || firstImg.attr("data-src") || ""
-            ),
-          },
-        })
-      );
-    }
-  }
 
   return findings;
 };
@@ -1469,15 +1279,19 @@ export const auditRobotsTxtLowerEnvDisallowAll = async (
 
 export const auditSitemapIndexAndUrlStatuses = async (
   findings,
-  { baseUrl, samplePerSitemap = 50 } = {},
+  { baseUrl, sitemapFilename = "sitemap.xml", samplePerSitemap = 50 } = {},
   config = {}
 ) => {
+
+
   const group = "sitemaps";
   const enabled = config?.sitemaps?.enabled ?? false; // default off (heavy)
   if (!enabled) return findings;
 
-  const sitemapIndexUrl = toAbsoluteUrl("/sitemap_index.xml", baseUrl);
+  const sitemapIndexUrl = toAbsoluteUrl(`/${sitemapFilename}`, baseUrl);
   const res = await httpRequest(sitemapIndexUrl, { method: "GET" }).catch(() => null);
+
+  console.log("Start Sitemap validation with Index URL:", sitemapIndexUrl);
 
   if (!res || !isOkStatus(res.status)) {
     pushFinding(findings, makeFinding({
@@ -1554,90 +1368,75 @@ export const auditSitemapIndexAndUrlStatuses = async (
   return findings;
 };
 
-/** ---------------------------
- * Main runner
- * ---------------------------
- */
+export const auditLazyLoadBelowFold = (
+  $,
+  findings,
+  route,
+  config = {}
+) => {
+  const group = "body";
+  const enabled = config?.lazyLoad?.enabled ?? true;
+  if (!enabled) return findings;
 
-export const runSeoAudits = async ({
-  url,
-  html,
-  lighthouseLhr = null,
-  config = {},
-  pageType = "",
-  isVariant = false,
-  isProduction = true,
-} = {}) => {
-  const findings = [];
-  const $ = parseHtml(html);
+  const lhr = lighthouseLhrForRoute(route);
+  if (!lhr) return null;
+  
+  const offscreen = lhr?.audits?.["offscreen-images"];
+  const offscreenItems = offscreen?.details?.items || [];
+  const offenders = offscreenItems.slice(0, 25).map((it) => ({
+    url: it.url || it?.node?.snippet || null,
+    wastedMs: it.wastedMs ?? null,
+    wastedBytes: it.wastedBytes ?? null,
+  }));
 
-  // HEAD (HTML)
-  auditTitle($, findings, config);
-  auditMetaDescription($, findings, config);
-  auditCanonical($, findings, { pageUrl: url }, config);
-  auditHreflang($, findings, { pageUrl: url, expectLocalized: config?.hreflang?.expectLocalized ?? false }, config);
-  auditOpenGraph($, findings, { pageUrl: url });
-  auditViewport($, findings);
-
-  // LCP preload (needs Lighthouse)
-  const lcpImg = getLcpImageUrlFromLhr(lighthouseLhr);
-  auditLcpPreload($, findings, { pageUrl: url, lcpImageUrl: lcpImg }, config);
-
-  // Favicon (network)
-  await auditFavicon($, findings, { pageUrl: url });
-
-  // BODY (HTML)
-  auditH1($, findings, config);
-  auditH2($, findings, config);
-  auditImageDimensions($, findings);
-  auditImageAltText($, findings, config);
-  auditLazyLoadBelowFold($, findings, { lighthouseLhr }, config);
-  auditPdpFetchPriority($, findings, { pageType }, config);
-  auditDescriptiveLinkText($, findings, config);
-
-  // In-content 404 sampling (network)
-  await auditInContentLinksNo404($, findings, { pageUrl: url, sampleLimit: config?.links?.inContentSampleLimit ?? 25 }, config);
-
-  // Redirect checks (network)
-  await auditHttpToHttpsRedirect(findings, { url }, config);
-  await auditNonWwwToWwwRedirect(findings, { url }, config);
-
-  // Robots meta
-  auditParentProductNoNoindex($, findings, config);
-  auditVariantHasNoindex($, findings, { isVariant }, config);
-
-  // robots.txt + sitemaps (network)
-  const baseUrl = (() => {
-    const u = tryParseUrl(url);
-    return u ? `${u.protocol}//${u.host}` : null;
-  })();
-
-  if (baseUrl) {
-    await auditRobotsTxtLowerEnvDisallowAll(findings, { baseUrl, isProduction }, config);
-    await auditSitemapIndexAndUrlStatuses(findings, { baseUrl, samplePerSitemap: config?.sitemaps?.samplePerSitemap ?? 50 }, config);
+  if (offenders.length) {
+    pushFinding(
+      findings,
+      makeFinding({
+        id: "lazyload-offscreen",
+        group,
+        severity: "warn",
+        pass: false,
+        message:
+          "Lighthouse reports offscreen images (consider lazy-loading below-the-fold images).",
+        details: { offenders },
+      })
+    );
+  } else {
+    pushFinding(
+      findings,
+      makeFinding({
+        id: "lazyload-offscreen",
+        group,
+        severity: "info",
+        pass: true,
+        message: "No offscreen images flagged by Lighthouse (or audit unavailable).",
+      })
+    );
   }
 
-  return {
-    url,
-    pageType,
-    isVariant,
-    summary: summarizeFindings(findings),
-    findings,
-  };
-};
-
-export const summarizeFindings = (findings) => {
-  const bySeverity = { error: 0, warn: 0, info: 0 };
-  let failed = 0;
-
-  for (const f of findings) {
-    bySeverity[f.severity] = (bySeverity[f.severity] ?? 0) + 1;
-    if (!f.pass && (f.severity === "error" || f.severity === "warn")) failed += 1;
+  const firstImg = $("img").first();
+  if (firstImg.length) {
+    const loading = safeLower(firstImg.attr("loading") || "");
+    if (loading === "lazy") {
+      pushFinding(
+        findings,
+        makeFinding({
+          id: "lazyload-first-image",
+          group,
+          severity: "warn",
+          pass: false,
+          message:
+            'First <img> is marked loading="lazy" (may hurt LCP if above the fold).',
+          details: {
+            src: normalizeSpace(
+              firstImg.attr("src") || firstImg.attr("data-src") || ""
+            ),
+          },
+        })
+      );
+    }
   }
 
-  return {
-    total: findings.length,
-    failed,
-    counts: bySeverity,
-  };
+  return findings;
 };

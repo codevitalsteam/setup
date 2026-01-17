@@ -5,19 +5,51 @@ inputs:
   host:
     description: Base URL to test (e.g. https://www.example.com)
     required: true
-  routes:
+  lh_routes:
     description: Comma-separated routes (e.g. /,/p/foo)
     required: false
     default: "/"
-  user-agent:
+  seo_routes:
+    description: Comma-separated routes (e.g. /,/p/foo)
+    required: false
+    default: "/"
+  user_agent:
     description: User agent for requests
     required: false
     default: "CodeVitalsBot/1.0"
-  presets:
-    description: Comma-separated presets (e.g. mobile,desktop)
+  devices:
+    description: Optional comma-separated devices (e.g. mobile,desktop). This overrides the devices in config.js
     required: false
     default: "mobile,desktop"
+  config_path:
+    required: false
+    description: Path to consumer config.js (e.g. .codevitals/config.js)
+  routes_path:
+    required: false
+    description: Path to consumer routes.js (e.g. .codevitals/routes.js)
 
 runs:
-  using: "node22"
-  main: "index.js"
+  using: "composite"
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci
+
+    - name: Run CodeVitals
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        HOST: ${{ inputs.host }}
+        LH_ROUTES: ${{ inputs.lh_routes }}
+        SEO_ROUTES: ${{ inputs.seo_routes }}
+        USER_AGENT: ${{ inputs.user_agent }}
+        DEVICES: ${{ inputs.devices }}
+        CONFIG_PATH: ${{ inputs.config_path }}
+        ROUTES_PATH: ${{ inputs.routes_path }}
+      run: node index.js

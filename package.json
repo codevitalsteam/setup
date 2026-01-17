@@ -3,8 +3,9 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm --prefix api run dev\" \"npm --prefix web run dev\"",
-    "build": "npm --prefix web run build",
-    "start": "npm --prefix api run start"
+    "web-build": "npm --prefix web run build",
+    "start": "npm --prefix api run start",
+    "build": "esbuild index.js --bundle --platform=node --target=node24 --outfile=dist/index.js"
   },
   "devDependencies": {
     "concurrently": "^9.0.0",
@@ -15,6 +16,7 @@
   "dependencies": {
     "cheerio": "^1.1.2",
     "dotenv": "^17.2.3",
+    "esbuild": "^0.27.2",
     "undici": "^7.18.2"
   }
 }
