@@ -1,5 +1,5 @@
 name: CodeVitals Post Deploy Audit
-description: Run CodeVitals post-deploy audits
+description: Run post-deployment Lighthouse and SEO audits to catch performance regressions and SEO issues early.
 
 inputs:
   host:
