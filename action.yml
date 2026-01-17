@@ -1,4 +1,4 @@
-name: CodeVitals Post Deploy Audit
+name: Code Vitals SEO and Performance Audit
 description: Run post-deployment Lighthouse and SEO audits to catch performance regressions and SEO issues early.
 branding:
   icon: activity
