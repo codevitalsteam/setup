@@ -44,7 +44,7 @@ post_deploy_audit:
       uses: codevitalsteam/setup@v1.0
       with:
         host: https://example.com
-        user_agent: LUComposableAPI/1.0
+        user_agent: CodeVitalsBot/1.0
         config_path: .codevitals/config.js
         routes_path: .codevitals/routes.js
 ```
