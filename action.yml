@@ -5,7 +5,11 @@ inputs:
   host:
     description: Base URL to test (e.g. https://www.example.com)
     required: true
-  routes:
+  lh_routes:
+    description: Comma-separated routes (e.g. /,/p/foo)
+    required: false
+    default: "/"
+  seo_routes:
     description: Comma-separated routes (e.g. /,/p/foo)
     required: false
     default: "/"
@@ -43,7 +47,8 @@ runs:
       working-directory: ${{ github.action_path }}
       env:
         HOST: ${{ inputs.host }}
-        LH_ROUTES: ${{ inputs.routes }}
+        LH_ROUTES: ${{ inputs.lh_routes }}
+        SEO_ROUTES: ${{ inputs.seo_routes }}
         USER_AGENT: ${{ inputs.user_agent }}
         PRESETS: ${{ inputs.presets }}
         CONFIG_PATH: ${{ inputs.config_path }}

@@ -1,7 +1,7 @@
 import "dotenv/config";
 
-import { config } from "../configs/config.mjs";
-import { routes } from "../configs/routes.mjs";
+import { config } from "../utils/configLoader.mjs";
+import { routes } from "../utils/routesLoader.mjs";
 import { saveSeoResults } from "./helpers/seoArtifactsHelper.js";
 import { fetchHtml, sleep } from "./helpers/seoHelpers.js";
 import { 
@@ -120,21 +120,22 @@ export const summarizeFindings = (findings) => {
   };
 };
 
-// Perform SEO audits
-console.log("🚦 Starting SEO audits...");
-console.log(`Using config: ${JSON.stringify(config.seoAudit)}`);
-console.log(`Using routes: ${JSON.stringify(routes.seoAudit)}`);
-
 // SEO Audit should have it's own routes
-const ROUTES = (
-  process.env.LH_ROUTES ? process.env.LH_ROUTES.split(",") : routes.seoAudit
+const seoRoutes = (
+  process.env.SEO_ROUTES ? process.env.SEO_ROUTES.split(",") : routes.seoAudit
 )
   .map((s) => s.trim())
   .filter(Boolean);
 
+
+// Perform SEO audits
+console.log("🚦 Starting SEO audits...");
+console.log(`Using config: ${JSON.stringify(config.seoAudit)}`);
+console.log(`Using routes: ${JSON.stringify(seoRoutes)}`);
+
 const delayMs = Number(process.env.CRAWL_DELAY_MS ?? "0");
 
-for (const route of ROUTES) {
+for (const route of seoRoutes) {
   const url = `${host}${route.startsWith("/") ? route : `/${route}`}`;
 
   console.log(`\nFetching HTML for SEO audits from ${url}...`);

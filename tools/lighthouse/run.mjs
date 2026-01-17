@@ -1,24 +1,26 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { config } from "../configs/config.mjs";
-import { routes } from "../configs/routes.mjs";
+import { config } from "../utils/configLoader.mjs";
+import { routes } from "../utils/routesLoader.mjs";
 import { scoreTo100, failIfBelow, failIfAbove, auditNumericValue, auditDisplayValue } from "./helpers/lighthouseHelpers.js";
 import { startSpinner } from "../utils/spinner.mjs";
 import { runAsyncCommand } from "../utils/runAsyncCommand.mjs";
 
-// Perform Lighthouse audits
-console.log("🚦 Starting Lighthouse audits...");
-console.log(`Using config: ${JSON.stringify(config.lighthouse)}`);
-console.log(`Using routes: ${JSON.stringify(routes.lighthouse)}`);
 
-const presets = config.lighthouse.devices;
-const thresholds = config.lighthouse.thresholds;
 const lighthouseRoutes = (
   process.env.LH_ROUTES ? process.env.LH_ROUTES.split(",") : routes.lighthouse
 )
   .map((s) => s.trim())
   .filter(Boolean);
+
+// Perform Lighthouse audits
+console.log("🚦 Starting Lighthouse audits...");
+console.log(`Using config: ${JSON.stringify(config.lighthouse)}`);
+console.log(`Using routes: ${JSON.stringify(routes)}`);
+
+const presets = config.lighthouse.devices;
+const thresholds = config.lighthouse.thresholds;
 
 const OUT_DIR = path.resolve("artifacts/lighthouse");
 fs.mkdirSync(OUT_DIR, { recursive: true });

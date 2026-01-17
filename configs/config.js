@@ -1,6 +1,4 @@
-import { importAsync } from "../utils/importAsync.mjs";
-
-export const configDefault = {
+export const config = {
   lighthouse : {
     devices: ['desktop'],
     thresholds:{
@@ -91,10 +89,3 @@ export const configDefault = {
     },
   }
 }
-
-
-
-const consumerConfig = await importAsync(
-  process.env.CONFIG_FILE
-);
-export const config = consumerConfig || configDefault;

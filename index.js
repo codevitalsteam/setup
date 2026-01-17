@@ -4,16 +4,15 @@ import path from "node:path";
 import process from "node:process";
 
 const HOST = process.env.HOST;
-const LH_ROUTES = process.env.LH_ROUTES || "/";
+const LH_ROUTES = process.env.LH_ROUTES;
+const SEO_ROUTES = process.env.SEO_ROUTES;
 const USER_AGENT = process.env.USER_AGENT || "CodeVitalsBot/1.0";
 const PRESETS = process.env.PRESETS || "mobile,desktop";
 const SITEMAP = process.env.SITEMAP || "sitemap.xml";
 
 // New: consumer-provided file paths (relative to the consumer repo root)
-const CONFIG_PATH =
-  process.env.CONFIG_PATH || process.env.CONFIG_PATH || "";
-const ROUTES_PATH =
-  process.env.ROUTES_PATH || process.env.ROUTES_PATH || "";
+const CONFIG_PATH = process.env.CONFIG_PATH || "configs/config.js";
+const ROUTES_PATH = process.env.ROUTES_PATH || "configs/routes.js";
 
 if (!HOST) {
   console.error("Missing env HOST (e.g. https://www.example.com)");
@@ -52,11 +51,10 @@ function run(tool) {
       ...process.env,
       HOST,
       LH_ROUTES,
+      SEO_ROUTES,
       USER_AGENT,
       PRESETS,
       SITEMAP,
-
-      // New: forward override file paths to sub-tools
       CONFIG_FILE: OVERRIDE_CONFIG_FILE,
       ROUTES_FILE: OVERRIDE_ROUTES_FILE,
     },
