@@ -9,6 +9,7 @@ const SEO_ROUTES = process.env.SEO_ROUTES;
 const USER_AGENT = process.env.USER_AGENT || "CodeVitalsBot/1.0";
 const PRESETS = process.env.PRESETS || "mobile,desktop";
 const SITEMAP = process.env.SITEMAP || "sitemap.xml";
+const ARTIFACTS_DIR = process.env.ARTIFACTS_DIR || "artifacts";
 
 // New: consumer-provided file paths (relative to the consumer repo root)
 const CONFIG_PATH = process.env.CONFIG_PATH || "configs/config.js";
@@ -57,6 +58,7 @@ function run(tool) {
       SITEMAP,
       CONFIG_FILE: OVERRIDE_CONFIG_FILE,
       ROUTES_FILE: OVERRIDE_ROUTES_FILE,
+      ARTIFACTS_DIR,
     },
   });
 
@@ -71,3 +73,5 @@ run("tools/seo/run.mjs");
 
 // 3) Screaming Frog (optional)
 // run("tools/screamingfrog/run.mjs");
+
+run("tools/utils/buildReportSummary.mjs");

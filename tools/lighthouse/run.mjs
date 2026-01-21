@@ -7,6 +7,7 @@ import { scoreTo100, failIfBelow, failIfAbove, auditNumericValue, auditDisplayVa
 import { startSpinner } from "../utils/spinner.mjs";
 import { runAsyncCommand } from "../utils/runAsyncCommand.mjs";
 
+const ARTIFACTS_DIR = process.env.ARTIFACTS_DIR || "artifacts";
 
 const lighthouseRoutes = (
   process.env.LH_ROUTES ? process.env.LH_ROUTES.split(",") : routes.lighthouse
@@ -22,7 +23,7 @@ console.log(`Using routes: ${JSON.stringify(routes)}`);
 const presets = process.env.DEVICES ? process.env.DEVICES.split(",") : config.lighthouse.devices;
 const thresholds = config.lighthouse.thresholds;
 
-const OUT_DIR = path.resolve("artifacts/lighthouse");
+const OUT_DIR = path.resolve(ARTIFACTS_DIR, "lighthouse");
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const server = null;
