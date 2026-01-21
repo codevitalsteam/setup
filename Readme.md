@@ -41,12 +41,19 @@ post_deploy_audit:
     - uses: actions/checkout@v4
 
     - name: Run CodeVitals post-deploy audit
-      uses: codevitalsteam/setup@v1.0
+      uses: codevitalsteam/setup@v1.0.1
       with:
         host: https://example.com
         user_agent: CodeVitalsBot/1.0
         config_path: .codevitals/config.js
         routes_path: .codevitals/routes.js
+    - name: Add Job Summary
+      run: cat artifacts/summary.md >> "$GITHUB_STEP_SUMMARY"
+    - name: Upload CodeVitals artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: codevitals-artifacts
+        path: artifacts/
 ```
 
 > `actions/checkout@v4` is required when using repository-based config or routes files.
