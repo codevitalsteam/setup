@@ -7,8 +7,10 @@ import path from "node:path";
  * @param {string} params.route - Page route or URL slug
  * @param {Object} params.results - SEO audit result object
  */
+const ARTIFACTS_DIR = process.env.ARTIFACTS_DIR || "artifacts";
+
 export const saveSeoResults = ({ route, results }) => {
-  const OUT_DIR = path.resolve("artifacts/seo");
+  const OUT_DIR = path.resolve(ARTIFACTS_DIR, "seo");
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
 

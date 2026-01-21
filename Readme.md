@@ -1,4 +1,4 @@
-# CodeVitals Post-Deploy Audit
+# CodeVitals SEO and Performance Audit
 
 A GitHub Action for running **post-deployment performance and SEO audits** against a live site using Lighthouse and custom SEO checks.
 
