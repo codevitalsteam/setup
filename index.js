@@ -9,7 +9,11 @@ const SEO_ROUTES = process.env.SEO_ROUTES;
 const USER_AGENT = process.env.USER_AGENT || "CodeVitalsBot/1.0";
 const PRESETS = process.env.PRESETS || "mobile,desktop";
 const SITEMAP = process.env.SITEMAP || "sitemap.xml";
-const ARTIFACTS_DIR = process.env.ARTIFACTS_DIR || "artifacts";
+// if env provided is relative, resolve it to WORKSPACE
+const ARTIFACTS_DIR_RAW = process.env.ARTIFACTS_DIR || "artifacts";
+const ARTIFACTS_DIR = path.isAbsolute(ARTIFACTS_DIR_RAW)
+  ? ARTIFACTS_DIR_RAW
+  : path.resolve(WORKSPACE, ARTIFACTS_DIR_RAW);
 
 // New: consumer-provided file paths (relative to the consumer repo root)
 const CONFIG_PATH = process.env.CONFIG_PATH || "configs/config.js";
