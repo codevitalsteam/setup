@@ -9,6 +9,7 @@ const SEO_ROUTES = process.env.SEO_ROUTES;
 const USER_AGENT = process.env.USER_AGENT || "CodeVitalsBot/1.0";
 const PRESETS = process.env.PRESETS || "mobile,desktop";
 const SITEMAP = process.env.SITEMAP || "sitemap.xml";
+const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
 // if env provided is relative, resolve it to WORKSPACE
 const ARTIFACTS_DIR_RAW = process.env.ARTIFACTS_DIR || "artifacts";
 const ARTIFACTS_DIR = path.isAbsolute(ARTIFACTS_DIR_RAW)
@@ -24,7 +25,7 @@ if (!HOST) {
   process.exit(1);
 }
 
-const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
+
 const OVERRIDES_DIR = path.resolve(WORKSPACE, ".codevitals-overrides");
 
 function copyFromConsumer(label, relOrAbsPath) {
