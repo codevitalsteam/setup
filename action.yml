@@ -11,11 +11,9 @@ inputs:
   lh_routes:
     description: Comma-separated routes (e.g. /,/p/foo)
     required: false
-    default: "/"
   seo_routes:
     description: Comma-separated routes (e.g. /,/p/foo)
     required: false
-    default: "/"
   user_agent:
     description: User agent for requests
     required: false
