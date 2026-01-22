@@ -119,7 +119,7 @@ export const summarizeFindings = (findings) => {
     counts: bySeverity,
   };
 };
-
+console.log("process.env.SEO_ROUTES:", process.env.SEO_ROUTES);
 // SEO Audit should have it's own routes
 const seoRoutes = (
   process.env.SEO_ROUTES ? process.env.SEO_ROUTES.split(",") : routes.seoAudit
@@ -131,7 +131,7 @@ const seoRoutes = (
 // Perform SEO audits
 console.log("🚦 Starting SEO audits...");
 console.log(`Using config: ${JSON.stringify(config.seoAudit)}`);
-console.log(`Using routes: ${JSON.stringify(seoRoutes)}`);
+console.log(`Using routes: ${JSON.stringify(routes)}`);
 
 const delayMs = Number(process.env.CRAWL_DELAY_MS ?? "0");
 

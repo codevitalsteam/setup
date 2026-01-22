@@ -49,6 +49,7 @@ function copyFromConsumer(label, relOrAbsPath) {
 
 const OVERRIDE_CONFIG_FILE = copyFromConsumer("Consumer config", CONFIG_PATH);
 const OVERRIDE_ROUTES_FILE = copyFromConsumer("Consumer routes", ROUTES_PATH);
+console.log(`Using overrides dir: ${OVERRIDE_ROUTES_FILE}`);
 
 function run(tool) {
   const result = spawnSync("node", [tool], {

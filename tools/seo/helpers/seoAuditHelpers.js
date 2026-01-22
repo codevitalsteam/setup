@@ -1378,7 +1378,7 @@ export const auditLazyLoadBelowFold = (
   const enabled = config?.lazyLoad?.enabled ?? true;
   if (!enabled) return findings;
 
-  const lhr = lighthouseLhrForRoute(route);
+  const lhr = lighthouseLhrForRoute(route,'auditLazyLoadBelowFold');
   if (!lhr) return null;
   
   const offscreen = lhr?.audits?.["offscreen-images"];

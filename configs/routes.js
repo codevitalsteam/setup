@@ -1,4 +1,4 @@
 export const routes = {
     lighthouse: ["/"],
-    seoAudit: ["/"]
+    seoAudit: ["/", "/about", "/products", "/products/widget-123", "/contact"],
 };

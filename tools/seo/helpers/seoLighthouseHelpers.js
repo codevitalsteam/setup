@@ -6,14 +6,15 @@ import path from "path";
  * ---------------------------
  */
 
-const LH_DIR = path.resolve("artifacts/lighthouse");
+const ARTIFACTS_DIR = process.env.ARTIFACTS_DIR || "artifacts";
+const OUT_DIR = path.resolve(ARTIFACTS_DIR, "lighthouse");
 
-export const lighthouseLhrForRoute = (route) => {
+export const lighthouseLhrForRoute = (route, testCase='') => {
   try {
     const slugBase = route === "/" ? "home" : route.replaceAll("/", "_").replace(/^_+/, "");
-    const lhPath = path.join(LH_DIR, `${slugBase}-desktop.json`)  
+    const lhPath = path.join(OUT_DIR, `${slugBase}-desktop.json`)  
     if (!fs.existsSync(lhPath)) {
-      console.warn(`⚠️ Missing lighthouse file: ${lhPath} (skipping ${route})`);
+      console.warn(`⚠️ Missing lighthouse file: ${lhPath} ${testCase ? `(skipping test case ${testCase})` : ''}`);
       return null;
     }
     
@@ -28,7 +29,7 @@ export const lighthouseLhrForRoute = (route) => {
 export const getLcpImageUrlFromLhr = (route) => {
   try {
 
-    const lhr = lighthouseLhrForRoute(route);
+    const lhr = lighthouseLhrForRoute(route, 'getLcpImageUrlFromLhr');
     if (!lhr) return null;
 
     const audit = lhr?.audits?.["largest-contentful-paint-element"];
